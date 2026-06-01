@@ -29,6 +29,9 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // Bypass region restriction
+        Environment.SetEnvironmentVariable("SLAVA_UKRAINI", "1");
+
         // Build and run the app
         var builder = BuildAvaloniaApp();
 
