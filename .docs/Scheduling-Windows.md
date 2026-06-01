@@ -1,11 +1,11 @@
 # Scheduling exports on Windows
 
-We'll be using [DiscordChatExporter CLI](https://github.com/Tyrrrz/DiscordChatExporter/releases/latest), PowerShell, and Task Scheduler.
+## Creating the script
 
 1. Open a text editor such as Notepad and paste:
 
-```powershell
-# Info: https://github.com/Tyrrrz/DiscordChatExporter/wiki
+```console
+# Info: https://github.com/Tyrrrz/DiscordChatExporter/blob/prime/.docs
 
 $TOKEN = "tokenhere"
 $CHANNEL = "channelhere"
@@ -17,7 +17,7 @@ $EXPORTFORMAT = "formathere"
 
 cd $EXEPATH
 
-.\DiscordChatExporter.Cli.exe export -t $TOKEN -c $CHANNEL -f $EXPORTFORMAT -o "$FILENAME.tmp"
+./DiscordChatExporter.Cli export -t $TOKEN -c $CHANNEL -f $EXPORTFORMAT -o "$FILENAME.tmp"
 
 $Date = Get-Date -Format "yyyy-MM-dd-HH-mm"
 
@@ -31,8 +31,8 @@ exit
 
 2. Replace:
 
-- `tokenhere` with your [Token](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md)
-- `channelhere` with a [Channel ID](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md)
+- `tokenhere` with your [Token](Token-and-IDs.md)
+- `channelhere` with a [Channel ID](Token-and-IDs.md)
 - `exefolderhere` with the .exe **directory's path** (e.g. C:\Users\User\Desktop\DiscordChatExporter)
 - `filenamehere` with a filename without spaces
 - `dirhere` with the export directory (e.g. C:\Users\User\Documents\Exports)
@@ -40,7 +40,9 @@ exit
 
 Make sure not to delete the quotes (")
 
-3. Save the file as `filename.ps1` not `.txt`
+3. Save the file as `filename.ps1`, not as `.txt`
+
+> **Note**: You can also modify the script to use other options, such as `include-threads` or switch to a different command, e. g. `exportguild`.
 
 ## Export at Startup
 
@@ -49,14 +51,14 @@ Make sure not to delete the quotes (")
 
 ## Scheduling with Task Scheduler
 
-Please notice your computer must be turned on so the exportation can occur.
+Please note that your computer must be turned on for the export to happen.
 
 1. Press Windows + R, type `taskschd.msc` and press ENTER
 2. Select `Task Scheduler Library`, create a Basic Task, and follow the instructions on-screen
 
 <img src="https://i.imgur.com/MHRVGDi.png" height="500"/>
 
-[ ![](https://i.imgur.com/m2DKhA8.png) ](https://i.imgur.com/3gHkF0t.png)
+![Screenshot from Task Scheduler](https://i.imgur.com/m2DKhA8.png)
 
 3. At 'Start a Program', write `powershell -file -ExecutionPolicy ByPass -WindowStyle Hidden "C:\path\to\filename.ps1"` in the Program/script text box
 

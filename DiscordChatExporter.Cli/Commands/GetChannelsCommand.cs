@@ -1,32 +1,31 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using CliFx.Attributes;
+using CliFx.Binding;
 using CliFx.Infrastructure;
 using DiscordChatExporter.Cli.Commands.Base;
 using DiscordChatExporter.Cli.Commands.Converters;
 using DiscordChatExporter.Cli.Commands.Shared;
 using DiscordChatExporter.Core.Discord;
-using DiscordChatExporter.Core.Discord.Data;
-using DiscordChatExporter.Core.Utils.Extensions;
+using PowerKit.Extensions;
 
 namespace DiscordChatExporter.Cli.Commands;
 
-[Command("channels", Description = "Get the list of channels in a guild.")]
-public class GetChannelsCommand : DiscordCommandBase
+[Command("channels", Description = "Get the list of channels in a server.")]
+public partial class GetChannelsCommand : DiscordCommandBase
 {
-    [CommandOption("guild", 'g', Description = "Guild ID.")]
-    public required Snowflake GuildId { get; init; }
+    [CommandOption("guild", 'g', Description = "Server ID.")]
+    public required Snowflake GuildId { get; set; }
 
     [CommandOption("include-vc", Description = "Include voice channels.")]
-    public bool IncludeVoiceChannels { get; init; } = true;
+    public bool IncludeVoiceChannels { get; set; } = true;
 
     [CommandOption(
         "include-threads",
         Description = "Which types of threads should be included.",
-        Converter = typeof(ThreadInclusionBindingConverter)
+        Converter = typeof(ThreadInclusionModeInputConverter)
     )]
-    public ThreadInclusion ThreadInclusion { get; init; } = ThreadInclusion.None;
+    public ThreadInclusionMode ThreadInclusionMode { get; set; } = ThreadInclusionMode.None;
 
     public override async ValueTask ExecuteAsync(IConsole console)
     {
@@ -35,8 +34,8 @@ public class GetChannelsCommand : DiscordCommandBase
         var cancellationToken = console.RegisterCancellationHandler();
 
         var channels = (await Discord.GetGuildChannelsAsync(GuildId, cancellationToken))
-            .Where(c => c.Kind != ChannelKind.GuildCategory)
-            .Where(c => IncludeVoiceChannels || !c.Kind.IsVoice())
+            .Where(c => !c.IsCategory)
+            .Where(c => IncludeVoiceChannels || !c.IsVoice)
             .OrderBy(c => c.Parent?.Position)
             .ThenBy(c => c.Name)
             .ToArray();
@@ -47,17 +46,19 @@ public class GetChannelsCommand : DiscordCommandBase
             .FirstOrDefault();
 
         var threads =
-            ThreadInclusion != ThreadInclusion.None
+            ThreadInclusionMode != ThreadInclusionMode.None
                 ? (
                     await Discord.GetGuildThreadsAsync(
                         GuildId,
-                        ThreadInclusion == ThreadInclusion.All,
+                        ThreadInclusionMode == ThreadInclusionMode.All,
+                        null,
+                        null,
                         cancellationToken
                     )
                 )
                     .OrderBy(c => c.Name)
                     .ToArray()
-                : Array.Empty<Channel>();
+                : [];
 
         foreach (var channel in channels)
         {
@@ -70,11 +71,9 @@ public class GetChannelsCommand : DiscordCommandBase
             using (console.WithForegroundColor(ConsoleColor.DarkGray))
                 await console.Output.WriteAsync(" | ");
 
-            // Channel category / name
+            // Channel name
             using (console.WithForegroundColor(ConsoleColor.White))
-                await console.Output.WriteLineAsync(
-                    $"{channel.ParentNameWithFallback} / {channel.Name}"
-                );
+                await console.Output.WriteLineAsync(channel.GetHierarchicalName());
 
             var channelThreads = threads.Where(t => t.Parent?.Id == channel.Id).ToArray();
             var channelThreadIdMaxLength = channelThreads

@@ -1,25 +1,59 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using DiscordChatExporter.Core.Discord;
+using DiscordChatExporter.Gui.Framework;
+using DiscordChatExporter.Gui.Localization;
 using DiscordChatExporter.Gui.Models;
 using DiscordChatExporter.Gui.Services;
-using DiscordChatExporter.Gui.ViewModels.Framework;
+using PowerKit;
+using PowerKit.Extensions;
 
 namespace DiscordChatExporter.Gui.ViewModels.Dialogs;
 
-public class SettingsViewModel : DialogScreen
+public class SettingsViewModel : DialogViewModelBase
 {
     private readonly SettingsService _settingsService;
+
+    private readonly IDisposable _eventSubscription;
+
+    public SettingsViewModel(
+        SettingsService settingsService,
+        LocalizationManager localizationManager
+    )
+    {
+        _settingsService = settingsService;
+        LocalizationManager = localizationManager;
+
+        _eventSubscription = Disposable.Merge(
+            _settingsService.WatchAllProperties(OnAllPropertiesChanged)
+        );
+    }
+
+    public LocalizationManager LocalizationManager { get; }
+
+    public IReadOnlyList<ThemeVariant> AvailableThemes { get; } = Enum.GetValues<ThemeVariant>();
+
+    public ThemeVariant Theme
+    {
+        get => _settingsService.Theme;
+        set => _settingsService.Theme = value;
+    }
+
+    public IReadOnlyList<Language> AvailableLanguages { get; } = Enum.GetValues<Language>();
+
+    public Language Language
+    {
+        get => _settingsService.Language;
+        set => _settingsService.Language = value;
+    }
+
+    public bool IsAutoUpdateAvailable { get; } =
+        OperatingSystem.IsWindows() && StartOptions.Current.IsAutoUpdateAllowed;
 
     public bool IsAutoUpdateEnabled
     {
         get => _settingsService.IsAutoUpdateEnabled;
         set => _settingsService.IsAutoUpdateEnabled = value;
-    }
-
-    public bool IsDarkModeEnabled
-    {
-        get => _settingsService.IsDarkModeEnabled;
-        set => _settingsService.IsDarkModeEnabled = value;
     }
 
     public bool IsTokenPersisted
@@ -28,19 +62,73 @@ public class SettingsViewModel : DialogScreen
         set => _settingsService.IsTokenPersisted = value;
     }
 
-    public IReadOnlyList<ThreadInclusion> AvailableThreadInclusions { get; } =
-        Enum.GetValues<ThreadInclusion>();
+    public IReadOnlyList<RateLimitPreference> AvailableRateLimitPreferences { get; } =
+        Enum.GetValues<RateLimitPreference>();
 
-    public ThreadInclusion ThreadInclusion
+    public RateLimitPreference RateLimitPreference
     {
-        get => _settingsService.ThreadInclusion;
-        set => _settingsService.ThreadInclusion = value;
+        get => _settingsService.RateLimitPreference;
+        set => _settingsService.RateLimitPreference = value;
     }
 
-    public string DateFormat
+    public IReadOnlyList<ThreadInclusionMode> AvailableThreadInclusionModes { get; } =
+        Enum.GetValues<ThreadInclusionMode>();
+
+    public ThreadInclusionMode ThreadInclusionMode
     {
-        get => _settingsService.DateFormat;
-        set => _settingsService.DateFormat = value;
+        get => _settingsService.ThreadInclusionMode;
+        set => _settingsService.ThreadInclusionMode = value;
+    }
+
+    // These items have to be non-nullable because Avalonia ComboBox doesn't allow a null value to be selected
+    public IReadOnlyList<string> AvailableLocales { get; } =
+    [
+        // Current locale (maps to null downstream)
+        "",
+        // Locales supported by the Discord app
+        "da-DK",
+        "de-DE",
+        "en-GB",
+        "en-US",
+        "es-ES",
+        "fr-FR",
+        "hr-HR",
+        "it-IT",
+        "lt-LT",
+        "hu-HU",
+        "nl-NL",
+        "no-NO",
+        "pl-PL",
+        "pt-BR",
+        "ro-RO",
+        "fi-FI",
+        "sv-SE",
+        "vi-VN",
+        "tr-TR",
+        "cs-CZ",
+        "el-GR",
+        "bg-BG",
+        "ru-RU",
+        "uk-UA",
+        "th-TH",
+        "zh-CN",
+        "ja-JP",
+        "zh-TW",
+        "ko-KR",
+    ];
+
+    // This has to be non-nullable because Avalonia ComboBox doesn't allow a null value to be selected
+    public string Locale
+    {
+        get => _settingsService.Locale ?? "";
+        // Important to reduce empty strings to nulls, because empty strings don't correspond to valid cultures
+        set => _settingsService.Locale = value.NullIfWhiteSpace();
+    }
+
+    public bool IsUtcNormalizationEnabled
+    {
+        get => _settingsService.IsUtcNormalizationEnabled;
+        set => _settingsService.IsUtcNormalizationEnabled = value;
     }
 
     public int ParallelLimit
@@ -49,5 +137,13 @@ public class SettingsViewModel : DialogScreen
         set => _settingsService.ParallelLimit = Math.Clamp(value, 1, 10);
     }
 
-    public SettingsViewModel(SettingsService settingsService) => _settingsService = settingsService;
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _eventSubscription.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
 }

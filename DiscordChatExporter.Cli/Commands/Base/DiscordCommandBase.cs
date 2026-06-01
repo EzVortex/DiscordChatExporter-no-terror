@@ -1,9 +1,11 @@
-﻿using System;
+using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using CliFx;
-using CliFx.Attributes;
+using CliFx.Binding;
 using CliFx.Infrastructure;
 using DiscordChatExporter.Core.Discord;
+using DiscordChatExporter.Core.Utils;
 
 namespace DiscordChatExporter.Cli.Commands.Base;
 
@@ -15,19 +17,29 @@ public abstract class DiscordCommandBase : ICommand
         EnvironmentVariable = "DISCORD_TOKEN",
         Description = "Authentication token."
     )]
-    public required string Token { get; init; }
+    public required string Token { get; set; }
 
-    [Obsolete("This option doesn't do anything. Kept for backwards compatibility.")]
     [CommandOption(
         "bot",
         'b',
         EnvironmentVariable = "DISCORD_TOKEN_BOT",
         Description = "This option doesn't do anything. Kept for backwards compatibility."
     )]
-    public bool IsBotToken { get; init; } = false;
+    public bool IsBotToken { get; set; } = false;
 
-    private DiscordClient? _discordClient;
-    protected DiscordClient Discord => _discordClient ??= new DiscordClient(Token);
+    [CommandOption(
+        "respect-rate-limits",
+        Description = "Whether to respect advisory rate limits. "
+            + "If disabled, only hard rate limits (i.e. 429 responses) will be respected."
+    )]
+    public bool ShouldRespectRateLimits { get; set; } = true;
+
+    [field: AllowNull, MaybeNull]
+    protected DiscordClient Discord =>
+        field ??= new DiscordClient(
+            Token,
+            ShouldRespectRateLimits ? RateLimitPreference.RespectAll : RateLimitPreference.IgnoreAll
+        );
 
     public virtual ValueTask ExecuteAsync(IConsole console)
     {
@@ -38,13 +50,22 @@ public abstract class DiscordCommandBase : ICommand
             using (console.WithForegroundColor(ConsoleColor.DarkYellow))
             {
                 console.Error.WriteLine(
-                    "Warning: Option --bot is deprecated and should not be used. "
-                        + "The type of the provided token is now inferred automatically. "
+                    "Warning: The --bot option is deprecated and should not be used. "
+                        + "The token type is now inferred automatically. "
                         + "Please update your workflows as this option may be completely removed in a future version."
                 );
             }
         }
 #pragma warning restore CS0618
+
+        // Note about interactivity for Docker
+        if (console.IsOutputRedirected && Docker.IsRunningInContainer)
+        {
+            console.Error.WriteLine(
+                "Note: Output streams are redirected, rich console interactions are disabled. "
+                    + "If you are running this command in Docker, consider allocating a pseudo-terminal for better user experience (docker run -it ...)."
+            );
+        }
 
         return default;
     }

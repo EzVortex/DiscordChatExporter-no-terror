@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -8,15 +8,10 @@ using DiscordChatExporter.Core.Discord.Data.Embeds;
 
 namespace DiscordChatExporter.Core.Exporting;
 
-internal class PlainTextMessageWriter : MessageWriter
+internal class PlainTextMessageWriter(Stream stream, ExportContext context)
+    : MessageWriter(stream, context)
 {
-    private readonly TextWriter _writer;
-
-    public PlainTextMessageWriter(Stream stream, ExportContext context)
-        : base(stream, context)
-    {
-        _writer = new StreamWriter(stream);
-    }
+    private readonly TextWriter _writer = new StreamWriter(stream);
 
     private async ValueTask<string> FormatMarkdownAsync(
         string markdown,
@@ -177,9 +172,14 @@ internal class PlainTextMessageWriter : MessageWriter
 
         await _writer.WriteLineAsync("{Reactions}");
 
-        foreach (var reaction in reactions)
+        foreach (var (i, reaction) in reactions.Index())
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (i > 0)
+            {
+                await _writer.WriteAsync(' ');
+            }
 
             await _writer.WriteAsync(reaction.Emoji.Name);
 
@@ -187,8 +187,6 @@ internal class PlainTextMessageWriter : MessageWriter
             {
                 await _writer.WriteAsync($" ({reaction.Count})");
             }
-
-            await _writer.WriteAsync(' ');
         }
 
         await _writer.WriteLineAsync();
@@ -200,9 +198,7 @@ internal class PlainTextMessageWriter : MessageWriter
     {
         await _writer.WriteLineAsync(new string('=', 62));
         await _writer.WriteLineAsync($"Guild: {Context.Request.Guild.Name}");
-        await _writer.WriteLineAsync(
-            $"Channel: {Context.Request.Channel.ParentNameWithFallback} / {Context.Request.Channel.Name}"
-        );
+        await _writer.WriteLineAsync($"Channel: {Context.Request.Channel.GetHierarchicalName()}");
 
         if (!string.IsNullOrWhiteSpace(Context.Request.Channel.Topic))
         {
@@ -227,6 +223,31 @@ internal class PlainTextMessageWriter : MessageWriter
         await _writer.WriteLineAsync();
     }
 
+    private async ValueTask WriteForwardedMessageAsync(
+        MessageSnapshot forwardedMessage,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await _writer.WriteLineAsync("{Forwarded Message}");
+
+        if (!string.IsNullOrWhiteSpace(forwardedMessage.Content))
+        {
+            await _writer.WriteLineAsync(
+                await FormatMarkdownAsync(forwardedMessage.Content, cancellationToken)
+            );
+        }
+
+        await _writer.WriteLineAsync(
+            $"Originally sent: {Context.FormatDate(forwardedMessage.Timestamp)}"
+        );
+
+        await WriteAttachmentsAsync(forwardedMessage.Attachments, cancellationToken);
+        await WriteEmbedsAsync(forwardedMessage.Embeds, cancellationToken);
+        await WriteStickersAsync(forwardedMessage.Stickers, cancellationToken);
+
+        await _writer.WriteLineAsync();
+    }
+
     public override async ValueTask WriteMessageAsync(
         Message message,
         CancellationToken cancellationToken = default
@@ -238,7 +259,7 @@ internal class PlainTextMessageWriter : MessageWriter
         await WriteMessageHeaderAsync(message);
 
         // Content
-        if (message.Kind.IsSystemNotification())
+        if (message.IsSystemNotification)
         {
             await _writer.WriteLineAsync(message.GetFallbackContent());
         }
@@ -250,6 +271,12 @@ internal class PlainTextMessageWriter : MessageWriter
         }
 
         await _writer.WriteLineAsync();
+
+        // Forwarded message content
+        if (message.ForwardedMessage is not null)
+        {
+            await WriteForwardedMessageAsync(message.ForwardedMessage, cancellationToken);
+        }
 
         // Attachments, embeds, reactions, etc.
         await WriteAttachmentsAsync(message.Attachments, cancellationToken);

@@ -1,48 +1,76 @@
-﻿using System;
-using System.IO;
+using System.Text.Json.Serialization;
 using Cogwheel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Exporting;
+using DiscordChatExporter.Gui.Framework;
+using DiscordChatExporter.Gui.Localization;
 using DiscordChatExporter.Gui.Models;
-using Microsoft.Win32;
 
 namespace DiscordChatExporter.Gui.Services;
 
-public partial class SettingsService : SettingsBase
+[ObservableObject]
+public partial class SettingsService()
+    : SettingsBase(StartOptions.Current.SettingsPath, SerializerContext.Default)
 {
-    public bool IsUkraineSupportMessageEnabled { get; set; } = true;
+    [ObservableProperty]
+    public partial bool IsUkraineSupportMessageEnabled { get; set; } = true;
 
-    public bool IsAutoUpdateEnabled { get; set; } = true;
+    [ObservableProperty]
+    public partial ThemeVariant Theme { get; set; }
 
-    public bool IsDarkModeEnabled { get; set; } = IsDarkModeEnabledByDefault();
+    [ObservableProperty]
+    public partial Language Language { get; set; }
 
-    public bool IsTokenPersisted { get; set; } = true;
+    [ObservableProperty]
+    public partial bool IsAutoUpdateEnabled { get; set; } = true;
 
-    public ThreadInclusion ThreadInclusion { get; set; } = ThreadInclusion.None;
+    [ObservableProperty]
+    public partial bool IsTokenPersisted { get; set; } = true;
 
-    public string DateFormat { get; set; } = "MM/dd/yyyy h:mm tt";
+    [ObservableProperty]
+    public partial RateLimitPreference RateLimitPreference { get; set; } =
+        RateLimitPreference.RespectAll;
 
-    public int ParallelLimit { get; set; } = 1;
+    [ObservableProperty]
+    public partial ThreadInclusionMode ThreadInclusionMode { get; set; }
 
-    public Version? LastAppVersion { get; set; }
+    [ObservableProperty]
+    public partial string? Locale { get; set; }
 
-    public string? LastToken { get; set; }
+    [ObservableProperty]
+    public partial bool IsUtcNormalizationEnabled { get; set; }
 
-    public ExportFormat LastExportFormat { get; set; } = ExportFormat.HtmlDark;
+    [ObservableProperty]
+    public partial int ParallelLimit { get; set; } = 1;
 
-    public string? LastPartitionLimitValue { get; set; }
+    [ObservableProperty]
+    [JsonConverter(typeof(TokenEncryptionConverter))]
+    public partial string? LastToken { get; set; }
 
-    public string? LastMessageFilterValue { get; set; }
+    [ObservableProperty]
+    public partial ExportFormat LastExportFormat { get; set; } = ExportFormat.HtmlDark;
 
-    public bool LastShouldFormatMarkdown { get; set; } = true;
+    [ObservableProperty]
+    public partial string? LastPartitionLimitValue { get; set; }
 
-    public bool LastShouldDownloadAssets { get; set; }
+    [ObservableProperty]
+    public partial string? LastMessageFilterValue { get; set; }
 
-    public bool LastShouldReuseAssets { get; set; }
+    [ObservableProperty]
+    public partial bool LastIsReverseMessageOrder { get; set; }
 
-    public string? LastAssetsDirPath { get; set; }
+    [ObservableProperty]
+    public partial bool LastShouldFormatMarkdown { get; set; } = true;
 
-    public SettingsService()
-        : base(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Settings.dat")) { }
+    [ObservableProperty]
+    public partial bool LastShouldDownloadAssets { get; set; }
+
+    [ObservableProperty]
+    public partial bool LastShouldReuseAssets { get; set; }
+
+    [ObservableProperty]
+    public partial string? LastAssetsDirPath { get; set; }
 
     public override void Save()
     {
@@ -59,21 +87,6 @@ public partial class SettingsService : SettingsBase
 
 public partial class SettingsService
 {
-    private static bool IsDarkModeEnabledByDefault()
-    {
-        try
-        {
-            return Registry.CurrentUser
-                .OpenSubKey(
-                    "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-                    false
-                )
-                ?.GetValue("AppsUseLightTheme")
-                is 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    [JsonSerializable(typeof(SettingsService))]
+    private partial class SerializerContext : JsonSerializerContext;
 }

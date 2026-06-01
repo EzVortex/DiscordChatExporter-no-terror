@@ -1,6 +1,6 @@
-﻿using System;
+using System;
+using System.Globalization;
 using System.Linq;
-using DiscordChatExporter.Core.Utils.Extensions;
 
 namespace DiscordChatExporter.Core.Discord.Data.Common;
 
@@ -10,7 +10,7 @@ public static class ImageCdn
     // Standard emoji are rendered through Twemoji
     public static string GetStandardEmojiUrl(string emojiName)
     {
-        var runes = emojiName.GetRunes().ToArray();
+        var runes = emojiName.EnumerateRunes().ToArray();
 
         // Variant selector rune is skipped in Twemoji IDs,
         // except when the emoji also contains a zero-width joiner.
@@ -19,7 +19,10 @@ public static class ImageCdn
             ? runes
             : runes.Where(r => r.Value != 0xfe0f);
 
-        var twemojiId = string.Join("-", filteredRunes.Select(r => r.Value.ToString("x")));
+        var twemojiId = string.Join(
+            "-",
+            filteredRunes.Select(r => r.Value.ToString("x", CultureInfo.InvariantCulture))
+        );
 
         return $"https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/{twemojiId}.svg";
     }

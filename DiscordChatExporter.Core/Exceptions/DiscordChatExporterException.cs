@@ -1,14 +1,12 @@
-﻿using System;
+using System;
 
 namespace DiscordChatExporter.Core.Exceptions;
 
-public class DiscordChatExporterException : Exception
+public class DiscordChatExporterException(
+    string message,
+    bool isFatal = false,
+    Exception? innerException = null
+) : Exception(message, innerException)
 {
-    public bool IsFatal { get; }
-
-    public DiscordChatExporterException(string message, bool isFatal = false)
-        : base(message)
-    {
-        IsFatal = isFatal;
-    }
+    public bool IsFatal { get; } = isFatal;
 }

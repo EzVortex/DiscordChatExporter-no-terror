@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -7,7 +7,7 @@ using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Discord.Data;
 using DiscordChatExporter.Core.Exporting.Filtering;
 using DiscordChatExporter.Core.Exporting.Partitioning;
-using DiscordChatExporter.Core.Utils;
+using PowerKit.Extensions;
 
 namespace DiscordChatExporter.Core.Exporting;
 
@@ -33,13 +33,19 @@ public partial class ExportRequest
 
     public MessageFilter MessageFilter { get; }
 
+    public bool IsReverseMessageOrder { get; }
+
     public bool ShouldFormatMarkdown { get; }
 
     public bool ShouldDownloadAssets { get; }
 
     public bool ShouldReuseAssets { get; }
 
-    public string DateFormat { get; }
+    public string? Locale { get; }
+
+    public CultureInfo? CultureInfo { get; }
+
+    public bool IsUtcNormalizationEnabled { get; }
 
     public ExportRequest(
         Guild guild,
@@ -51,10 +57,12 @@ public partial class ExportRequest
         Snowflake? before,
         PartitionLimit partitionLimit,
         MessageFilter messageFilter,
+        bool isReverseMessageOrder,
         bool shouldFormatMarkdown,
         bool shouldDownloadAssets,
         bool shouldReuseAssets,
-        string dateFormat
+        string? locale,
+        bool isUtcNormalizationEnabled
     )
     {
         Guild = guild;
@@ -64,10 +72,12 @@ public partial class ExportRequest
         Before = before;
         PartitionLimit = partitionLimit;
         MessageFilter = messageFilter;
+        IsReverseMessageOrder = isReverseMessageOrder;
         ShouldFormatMarkdown = shouldFormatMarkdown;
         ShouldDownloadAssets = shouldDownloadAssets;
         ShouldReuseAssets = shouldReuseAssets;
-        DateFormat = dateFormat;
+        Locale = locale;
+        IsUtcNormalizationEnabled = isUtcNormalizationEnabled;
 
         OutputFilePath = GetOutputBaseFilePath(Guild, Channel, outputPath, Format, After, Before);
 
@@ -76,6 +86,8 @@ public partial class ExportRequest
         AssetsDirPath = !string.IsNullOrWhiteSpace(assetsDirPath)
             ? FormatPath(assetsDirPath, Guild, Channel, After, Before)
             : $"{OutputFilePath}_Files{Path.DirectorySeparatorChar}";
+
+        CultureInfo = Locale?.Pipe(CultureInfo.GetCultureInfo);
     }
 }
 
@@ -91,10 +103,21 @@ public partial class ExportRequest
     {
         var buffer = new StringBuilder();
 
-        // Guild and channel names
-        buffer.Append(
-            $"{guild.Name} - {channel.ParentNameWithFallback} - {channel.Name} [{channel.Id}]"
-        );
+        // Guild name
+        buffer.Append(guild.Name);
+
+        // Parent name
+        if (channel.Parent is not null)
+            buffer.Append(" - ").Append(channel.Parent.Name);
+
+        // Channel name and ID
+        buffer
+            .Append(" - ")
+            .Append(channel.Name)
+            .Append(' ')
+            .Append('[')
+            .Append(channel.Id)
+            .Append(']');
 
         // Date range
         if (after is not null || before is not null)
@@ -125,7 +148,7 @@ public partial class ExportRequest
         // File extension
         buffer.Append('.').Append(format.GetFileExtension());
 
-        return PathEx.EscapeFileName(buffer.ToString());
+        return Path.EscapeFileName(buffer.ToString());
     }
 
     private static string FormatPath(
@@ -134,42 +157,43 @@ public partial class ExportRequest
         Channel channel,
         Snowflake? after,
         Snowflake? before
-    )
-    {
-        return Regex.Replace(
+    ) =>
+        Regex.Replace(
             path,
             "%.",
             m =>
-                PathEx.EscapeFileName(
+                Path.EscapeFileName(
                     m.Value switch
                     {
                         "%g" => guild.Id.ToString(),
                         "%G" => guild.Name,
+
                         "%t" => channel.Parent?.Id.ToString() ?? "",
                         "%T" => channel.Parent?.Name ?? "",
+
                         "%c" => channel.Id.ToString(),
                         "%C" => channel.Name,
+
                         "%p" => channel.Position?.ToString(CultureInfo.InvariantCulture) ?? "0",
-                        "%P"
-                            => channel.Parent?.Position?.ToString(CultureInfo.InvariantCulture)
-                                ?? "0",
-                        "%a"
-                            => after?.ToDate().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-                                ?? "",
-                        "%b"
-                            => before?.ToDate().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-                                ?? "",
-                        "%d"
-                            => DateTimeOffset.Now.ToString(
-                                "yyyy-MM-dd",
-                                CultureInfo.InvariantCulture
-                            ),
+                        "%P" => channel.Parent?.Position?.ToString(CultureInfo.InvariantCulture)
+                            ?? "0",
+
+                        "%a" => after?.ToDate().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                            ?? "",
+                        "%b" => before
+                            ?.ToDate()
+                            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                            ?? "",
+                        "%d" => DateTimeOffset.Now.ToString(
+                            "yyyy-MM-dd",
+                            CultureInfo.InvariantCulture
+                        ),
+
                         "%%" => "%",
-                        _ => m.Value
+                        _ => m.Value,
                     }
                 )
         );
-    }
 
     private static string GetOutputBaseFilePath(
         Guild guild,

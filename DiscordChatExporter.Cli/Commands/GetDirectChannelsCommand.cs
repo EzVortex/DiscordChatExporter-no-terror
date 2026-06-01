@@ -1,16 +1,16 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using CliFx.Attributes;
+using CliFx.Binding;
 using CliFx.Infrastructure;
 using DiscordChatExporter.Cli.Commands.Base;
 using DiscordChatExporter.Core.Discord.Data;
-using DiscordChatExporter.Core.Utils.Extensions;
+using PowerKit.Extensions;
 
 namespace DiscordChatExporter.Cli.Commands;
 
 [Command("dm", Description = "Gets the list of all direct message channels.")]
-public class GetDirectChannelsCommand : DiscordCommandBase
+public partial class GetDirectChannelsCommand : DiscordCommandBase
 {
     public override async ValueTask ExecuteAsync(IConsole console)
     {
@@ -21,7 +21,6 @@ public class GetDirectChannelsCommand : DiscordCommandBase
         var channels = (
             await Discord.GetGuildChannelsAsync(Guild.DirectMessages.Id, cancellationToken)
         )
-            .Where(c => c.Kind != ChannelKind.GuildCategory)
             .OrderByDescending(c => c.LastMessageId)
             .ThenBy(c => c.Name)
             .ToArray();
@@ -42,11 +41,9 @@ public class GetDirectChannelsCommand : DiscordCommandBase
             using (console.WithForegroundColor(ConsoleColor.DarkGray))
                 await console.Output.WriteAsync(" | ");
 
-            // Channel category / name
+            // Channel name
             using (console.WithForegroundColor(ConsoleColor.White))
-                await console.Output.WriteLineAsync(
-                    $"{channel.ParentNameWithFallback} / {channel.Name}"
-                );
+                await console.Output.WriteLineAsync(channel.GetHierarchicalName());
         }
     }
 }

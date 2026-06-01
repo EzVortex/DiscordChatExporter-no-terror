@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -8,31 +8,31 @@ using System.Threading;
 using System.Threading.Tasks;
 using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Discord.Data;
-using DiscordChatExporter.Core.Utils.Extensions;
+using DiscordChatExporter.Core.Utils;
+using PowerKit.Extensions;
 
 namespace DiscordChatExporter.Core.Exporting;
 
-internal class ExportContext
+internal class ExportContext(DiscordClient discord, ExportRequest request)
 {
     private readonly Dictionary<Snowflake, Member?> _membersById = new();
-    private readonly Dictionary<Snowflake, Channel> _channelsById = new();
+    private readonly Dictionary<Snowflake, Channel?> _channelsById = new();
     private readonly Dictionary<Snowflake, Role> _rolesById = new();
-    private readonly ExportAssetDownloader _assetDownloader;
 
-    public DiscordClient Discord { get; }
+    private readonly ExportAssetDownloader _assetDownloader = new(
+        request.AssetsDirPath,
+        request.ShouldReuseAssets
+    );
 
-    public ExportRequest Request { get; }
+    public DiscordClient Discord { get; } = discord;
 
-    public ExportContext(DiscordClient discord, ExportRequest request)
-    {
-        Discord = discord;
-        Request = request;
+    public ExportRequest Request { get; } = request;
 
-        _assetDownloader = new ExportAssetDownloader(
-            request.AssetsDirPath,
-            request.ShouldReuseAssets
-        );
-    }
+    public DateTimeOffset NormalizeDate(DateTimeOffset instant) =>
+        Request.IsUtcNormalizationEnabled ? instant.ToUniversalTime() : instant.ToLocalTime();
+
+    public string FormatDate(DateTimeOffset instant, string format = "g") =>
+        NormalizeDate(instant).ToString(format, Request.CultureInfo);
 
     public async ValueTask PopulateChannelsAndRolesAsync(
         CancellationToken cancellationToken = default
@@ -41,10 +41,29 @@ internal class ExportContext
         await foreach (
             var channel in Discord.GetGuildChannelsAsync(Request.Guild.Id, cancellationToken)
         )
+        {
             _channelsById[channel.Id] = channel;
+        }
 
         await foreach (var role in Discord.GetGuildRolesAsync(Request.Guild.Id, cancellationToken))
+        {
             _rolesById[role.Id] = role;
+        }
+    }
+
+    // Threads are not preloaded, so we resolve them on demand
+    public async ValueTask PopulateChannelAsync(
+        Snowflake id,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_channelsById.ContainsKey(id))
+            return;
+
+        var channel = await Discord.TryGetChannelAsync(id, cancellationToken);
+
+        // Store the result even if it's null, to avoid re-fetching non-existing channels
+        _channelsById[id] = channel;
     }
 
     // Because members cannot be pulled in bulk, we need to populate them on demand
@@ -84,14 +103,6 @@ internal class ExportContext
         CancellationToken cancellationToken = default
     ) => await PopulateMemberAsync(user.Id, user, cancellationToken);
 
-    public string FormatDate(DateTimeOffset instant) =>
-        Request.DateFormat switch
-        {
-            "unix" => instant.ToUnixTimeSeconds().ToString(),
-            "unixms" => instant.ToUnixTimeMilliseconds().ToString(),
-            var format => instant.ToLocalString(format)
-        };
-
     public Member? TryGetMember(Snowflake id) => _membersById.GetValueOrDefault(id);
 
     public Channel? TryGetChannel(Snowflake id) => _channelsById.GetValueOrDefault(id);
@@ -99,11 +110,12 @@ internal class ExportContext
     public Role? TryGetRole(Snowflake id) => _rolesById.GetValueOrDefault(id);
 
     public IReadOnlyList<Role> GetUserRoles(Snowflake id) =>
-        TryGetMember(id)?.RoleIds
-            .Select(TryGetRole)
+        TryGetMember(id)
+            ?.RoleIds.Select(TryGetRole)
             .WhereNotNull()
             .OrderByDescending(r => r.Position)
-            .ToArray() ?? Array.Empty<Role>();
+            .ToArray()
+        ?? [];
 
     public Color? TryGetUserColor(Snowflake id) =>
         GetUserRoles(id).Where(r => r.Color is not null).Select(r => r.Color).FirstOrDefault();
@@ -121,9 +133,9 @@ internal class ExportContext
             var filePath = await _assetDownloader.DownloadAsync(url, cancellationToken);
             var relativeFilePath = Path.GetRelativePath(Request.OutputDirPath, filePath);
 
-            // Prefer relative paths so that the output files can be copied around without breaking references.
-            // If the asset directory is outside of the export directory, use an absolute path instead.
-            var optimalFilePath =
+            // Prefer the relative path so that the export package can be copied around without breaking references.
+            // However, if the assets directory lies outside the export directory, use the absolute path instead.
+            var shouldUseAbsoluteFilePath =
                 relativeFilePath.StartsWith(
                     ".." + Path.DirectorySeparatorChar,
                     StringComparison.Ordinal
@@ -131,16 +143,13 @@ internal class ExportContext
                 || relativeFilePath.StartsWith(
                     ".." + Path.AltDirectorySeparatorChar,
                     StringComparison.Ordinal
-                )
-                    ? filePath
-                    : relativeFilePath;
+                );
+
+            var optimalFilePath = shouldUseAbsoluteFilePath ? filePath : relativeFilePath;
 
             // For HTML, the path needs to be properly formatted
             if (Request.Format is ExportFormat.HtmlDark or ExportFormat.HtmlLight)
-            {
-                // Create a 'file:///' URI and then strip the 'file:///' prefix to allow for relative paths
-                return new Uri(new Uri("file:///"), optimalFilePath).ToString()[8..];
-            }
+                return Url.EncodeFilePath(optimalFilePath);
 
             return optimalFilePath;
         }

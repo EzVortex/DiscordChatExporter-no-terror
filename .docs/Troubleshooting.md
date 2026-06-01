@@ -6,7 +6,7 @@ Here you'll find the answers to most of the questions related to **DiscordChatEx
 - ❓ If you still have unanswered questions _after_ reading this page, feel free to [create a new discussion](https://github.com/Tyrrrz/DiscordChatExporter/discussions/new).
 - 🐞 If you have encountered a problem that's not described here, has not [been discussed before](https://github.com/Tyrrrz/DiscordChatExporter/discussions), and is not a [known issue](https://github.com/Tyrrrz/DiscordChatExporter/issues?q=is%3Aissue), please [create a new discussion](https://github.com/Tyrrrz/DiscordChatExporter/discussions/new) or [open a bug report](https://github.com/Tyrrrz/DiscordChatExporter/issues/new). Don't forget to include your platform (Windows, Mac, Linux, etc.) and a detailed description of your question/problem.
 
-## General
+## General questions
 
 ### Token stealer?
 
@@ -20,11 +20,11 @@ A token can be used to log into your account, so treat it like a password and ne
 
 ### How can I reset my token?
 
-Follow the [instructions here](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md).
+Follow the [instructions here](Token-and-IDs.md).
 
 ### Will I get banned if I use this?
 
-Automating user accounts is technically against [TOS](https://discord.com/terms), use at your discretion. [Bot accounts](https://discord.com/developers/docs/topics/oauth2#bots) don't have this restriction.
+Automating user accounts is technically against [TOS](https://discord.com/terms), use at your discretion. [Bot accounts](https://discord.com/developers/docs/topics/oauth2#bot-users) don't have this restriction.
 
 ### Will the messages disappear from the exported file if I delete a message, delete my account or block a person?
 
@@ -46,6 +46,10 @@ Yes, and other media too. Export using the "Download media" (`--media`) option.
 
 Yes.
 
+### Can DCE export multiple formats at once?
+
+No, you can only export one format at a time.
+
 ### Can DCE recreate the exported chats in Discord?
 
 No, DCE is an exporter.
@@ -54,49 +58,35 @@ No, DCE is an exporter.
 
 No, DCE is an exporter.
 
+### Can DCE add new messages to an existing export?
+
+No.
+
 ## First steps
 
 ### How can I find my token?
 
-Check the following page: [Obtaining token](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md)
+Check the following page: [Obtaining token](Token-and-IDs.md)
 
-### When I open DCE a black window pops up quickly or nothing shows up.
+### When I open DCE a black window pops up quickly or nothing shows up
 
-If you have [.NET Core Runtime correctly installed](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Dotnet.md), you might have downloaded DCE.CLI, try [downloading the GUI](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Getting-started.md#gui-or-cli) instead.
-
-### I can't open DCE. It sends me to a Visual Studio webpage.
-
-Check the following page:
-[Installation and usage](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Readme.md#installation--usage)
-
-### How do I run DCE on macOS or Linux?
-
-Check the following pages:
-
-- [macOS usage instructions](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/MacOS.md)
-- [Linux usage instructions](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Linux.md)
+You might have downloaded the CLI flavor of the app, which is meant to be run in a terminal. Try [downloading the GUI](Getting-started.md#gui-or-cli) instead if that's what you want.
 
 ### How can I set DCE to export automatically at certain times?
 
 Check the following pages to learn how to schedule **DiscordChatExporter.CLI** runs (advanced):
 
-- [Windows scheduling](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/scheduling-windows.md)
-- [macOS scheduling](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/scheduling-MacOS.md)
-- [Linux scheduling](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/scheduling-Linux.md)
+- [Windows scheduling](Scheduling-Windows.md)
+- [macOS scheduling](Scheduling-MacOS.md)
+- [Linux scheduling](Scheduling-Linux.md)
 
-### The exported file is too large, I can't open it!
+### The exported file is too large, I can't open it
 
 Try opening it with a different program, try partitioning or use a different file format, like `PlainText`.
 
-### DCE is crashing/failing.
+### I see messages in the export, but they have no content
 
-Check the following page: [Installing .NET Core Runtime](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Dotnet.md)
-
-If you already have .NET Core installed, please check if your problem is a [known issue](https://github.com/Tyrrrz/DiscordChatExporter/issues?q=is%3Aissue) before [opening a bug report](https://github.com/Tyrrrz/DiscordChatExporter/issues/new).
-
-### .NET Core Runtime is required.
-
-Check the following page: [Installing .NET Core Runtime](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Dotnet.md)
+Your bot is missing the 'Message Content Intent'. Go to the [Discord Developer Portal](https://discord.com/developers/applications), navigate to the 'Bot' section and enable it.
 
 ## CLI
 
@@ -104,56 +94,48 @@ Check the following page: [Installing .NET Core Runtime](https://github.com/Tyrr
 
 Check the following page:
 
-- [Using the CLI](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Getting-started.md#using-the-cli)
+- [Using the CLI](Using-the-CLI.md)
 
-If you're using **Docker**, please refer to the [Docker Usage Instructions](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Docker.md) instead.
+If you're using **Docker**, please refer to the [Docker Usage Instructions](Docker.md) instead.
 
 ### Where can I find the 'Channel IDs'?
 
 Check the following page:
 
-- [Obtaining Channel IDs](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md)
+- [Obtaining Channel IDs](Token-and-IDs.md)
 
 ### I can't find Docker exported chats
 
 Check the following page:
 
-- [Docker usage instructions](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/docker)
+- [Docker usage instructions](Docker.md)
 
 ### I can't export Direct Messages
 
-Make sure you're [copying the DM Channel ID](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md#how-to-get-a-direct-message-channel-id), not the person's user ID.
+Make sure you're [copying the DM Channel ID](Token-and-IDs.md#how-to-get-a-direct-message-channel-id), not the person's user ID.
 
 ## Errors
 
-```
+```yml
 DiscordChatExporter.Domain.Exceptions.DiscordChatExporterException: Authentication token is invalid.
-...
 ```
 
 ↳ Make sure the provided token is correct.
 
-```
+```yml
 DiscordChatExporter.Domain.Exceptions.DiscordChatExporterException: Requested resource does not exist.
 ```
 
-↳ Check your channel ID, it might be invalid. [Read this if you need help](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md).
+↳ Check your channel ID, it might be invalid. [Read this if you need help](Token-and-IDs.md).
 
-```
+```yml
 DiscordChatExporter.Domain.Exceptions.DiscordChatExporterException: Access is forbidden.
 ```
 
 ↳ This means you don't have access to the channel.
 
-```
-The application to execute does not exist:
-```
-
-↳ The `DiscordChatExporter.Cli.dll` file is missing. Keep the `.exe` and all the `.dll` files together. If you didn't move the files, try unzipping again.
-
-```
+```yml
 System.Net.WebException: Error: TrustFailure ... Invalid certificate received from server.
-...
 ```
 
 ↳ Try running cert-sync.
@@ -164,8 +146,14 @@ Red Hat: `cert-sync --user /etc/pki/tls/certs/ca-bundle.crt`
 
 If it still doesn't work, try mozroots: `mozroots --import --ask-remove`
 
+## macOS-specific
+
+### DiscordChatExporter is damaged and can’t be opened. You should move it to the Trash.
+
+Check the [Using the GUI page](Using-the-GUI.md#step-1) for instructions on how to run the app.
+
 ---
 
 > ❓ If you still have unanswered questions, feel free to [create a new discussion](https://github.com/Tyrrrz/DiscordChatExporter/discussions/new).
-
+>
 > 🐞 If you have encountered a problem that's not described here, has not [been discussed before](https://github.com/Tyrrrz/DiscordChatExporter/discussions), and is not a [known issue](https://github.com/Tyrrrz/DiscordChatExporter/issues?q=is%3Aissue), please [create a new discussion](https://github.com/Tyrrrz/DiscordChatExporter/discussions/new) or [open a bug report](https://github.com/Tyrrrz/DiscordChatExporter/issues/new).

@@ -1,10 +1,11 @@
 # Obtaining Token and Channel IDs
 
-> **Warning**:
-> **Do not share your token!**
-> A token gives full access to an account. To reset a user token, change your account password. To reset a bot token, click on [Regenerate](#how-to-get-a-bot-token) in the bot settings.
+> [!WARNING]
+> **Do not share your token!** A token gives full access to an account.  
+> To reset a user token, change your account password.  
+> To reset a bot token, click on [Reset Token](#how-to-export-with-a-bot-token) in the bot settings.
 
-## How to get a User Token
+## How to get a user token
 
 **Caution:** [Automating user accounts violates Discord's terms of service](https://support.discord.com/hc/en-us/articles/115002192352-Automated-user-accounts-self-bots-) and may result in account termination. Use at your own risk.
 
@@ -13,6 +14,23 @@
 Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 
 #### In Chrome
+
+##### Using the console
+
+1. <img width="500" align="right" src="https://i.imgur.com/zdDwIT5.jpg" />Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (<kbd>⌥</kbd>+<kbd>⌘</kbd>+<kbd>I</kbd> on macOS). Chrome's [DevTools](https://developer.chrome.com/docs/devtools/overview) tools will display.
+
+<br clear="right" />
+<br />
+
+2. Click the `Console` tab. The [console](https://developer.chrome.com/docs/devtools/console/) will open.
+
+3. Type
+
+    ```js
+    let m;webpackChunkdiscord_app.push([[Math.random()],{},e=>{for(let i in e.c){let x=e.c[i];if(x?.exports?.getToken){m=x;break}}}]);m&&console.log("Token:",m.exports.getToken());
+    ```
+
+    into the console and press <kbd>Enter</kbd>. The console will display your user token.
 
 ##### Using the network monitor
 
@@ -31,12 +49,12 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 <br clear="right" />
 <br />
 
-4. <img width="500" align="right" src="https://i.imgur.com/rnZG8Id.png" />Click the text box labelled `Filter` and type `library`. The entries will filter down to a single entry named `library`.
+4. <img width="500" align="right" src="https://i.imgur.com/rnZG8Id.png" />Click the text box labelled `Filter` and type `messages`. The entries will filter down to a single request named `messages`. If the request doesn't appear, switch to any other Discord channel to trigger it.
 
 <br clear="right" />
 <br />
 
-5. <img width="500" align="right" src="https://i.imgur.com/29dE3fR.png" />Click the entry named `library`. A panel will open to the right and display details about the entry. Click the `Headers` tab if it isn't already active.
+5. <img width="500" align="right" src="https://i.imgur.com/29dE3fR.png" />Click the entry named `messages`. A panel will open to the right and display details about the entry. Click the `Headers` tab if it isn't already active.
 
 <br clear="right" />
 <br />
@@ -90,6 +108,23 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 
 #### In Firefox
 
+##### Using the console
+
+1. <img width="500" align="right" src="https://i.imgur.com/O34nwdG.png" />Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> (<kbd>⌥</kbd>+<kbd>⌘</kbd>+<kbd>K</kbd> on macOS). Firefox’s [web developer tools](https://firefox-source-docs.mozilla.org/devtools-user/) will display at the bottom of the window, and the [web console](https://firefox-source-docs.mozilla.org/devtools-user/console/index.html) will display.
+
+<br clear="right" />
+<br />
+
+2. Click the `Console` tab. The [console](https://firefox-source-docs.mozilla.org/devtools-user/console/index.html) will open.
+
+1. Type
+
+    ```js
+    let m;webpackChunkdiscord_app.push([[Math.random()],{},e=>{for(let i in e.c){let x=e.c[i];if(x?.exports?.getToken){m=x;break}}}]);m&&console.log("Token:",m.exports.getToken());
+    ```
+
+    into the console and press <kbd>Enter</kbd>. The console will display your user token.
+
 ##### Using the network monitor
 
 1. <img width="500" align="right" src="https://i.imgur.com/O34nwdG.png" />Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (<kbd>⌥</kbd>+<kbd>⌘</kbd>+<kbd>E</kbd> on macOS). Firefox’s [web developer tools](https://firefox-source-docs.mozilla.org/devtools-user/) will display at the bottom of the window, and the [network monitor](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/) will display.
@@ -102,12 +137,12 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 <br clear="right" />
 <br />
 
-3. <img width="500" align="right" src="https://i.imgur.com/efUCfBO.png" />Type `library` into the filter. The network request list will filter out any entries not containing the string `library`.
+3. <img width="500" align="right" src="https://i.imgur.com/efUCfBO.png" />Type `messages` into the filter. The network request list will filter out any entries not containing the string `messages`. If the request doesn't appear, switch to any other Discord channel to trigger it.
 
 <br clear="right" />
 <br />
 
-4. <img width="500" align="right" src="https://i.imgur.com/cdJZ7Q1.png" />Click `library`. The [network request details pane](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/request_details/index.html) will display. The [headers tab](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/request_details/index.html#network-monitor-request-details-headers-tab) should be active by default. If it isn’t, click it.
+4. <img width="500" align="right" src="https://i.imgur.com/cdJZ7Q1.png" />Click `messages`. The [network request details pane](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/request_details/index.html) will display. The [headers tab](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/request_details/index.html#network-monitor-request-details-headers-tab) should be active by default. If it isn’t, click it.
 
 <br clear="right" />
 <br />
@@ -164,7 +199,7 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 <br clear="right" />
 <br />
 
-### Through the desktop app / Enabling web developer tools
+### Through the desktop app / enabling web developer tools
 
 #### By editing the settings file
 
@@ -198,7 +233,7 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 
 4. Launch Discord.
 
-5. To find your user token, continue [here](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md#in-chrome).
+5. To find your user token, continue [here](#in-chrome).
 
 #### Via settings menu (BetterDiscord only)
 
@@ -218,19 +253,63 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 <br />
 
 4. Press <kbd>Esc</kbd>. The settings page will close.
-5. To find your user token, continue [here](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md#in-chrome).
+5. To find your user token, continue [here](#in-chrome).
 
-## How to get a Bot Token
+## How to export with a bot token
+
+### Step 1 - Create an application
+
+You can create a new application or use an existing one. If you want to create a new one:
+
+1. Go to [Discord developer portal](https://discord.com/developers/applications)
+2. Click on **New Application** in the top right corner
+3. Enter a name for your application and click **Create**
+
+### Step 2 - Invite the bot to your server
+
+The bot needs to be invited to the server you'd like to export from.
+
+1. Go to [Discord developer portal](https://discord.com/developers/applications)
+2. Navigate to **General Information** on the left
+3. Copy the **Application ID**
+4. Open the following URL in your browser, replacing `YOUR_APP_ID` with the copied Client ID:
+
+<!-- Permission code 66560 corresponds to "View Channels" and "Read Message History" permissions.
+      User can uncheck these when adding the bot to their server. -->
+
+```
+https://discord.com/oauth2/authorize?scope=bot&permissions=66560&client_id=YOUR_APP_ID
+```
+
+### Step 3 - Ensure message content intent is enabled
+
+If this option is not enabled, the exported files will be empty.
 
 1. Go to [Discord developer portal](https://discord.com/developers/applications)
 2. Open your Application's settings
 3. Navigate to the **Bot** section on the left
-4. Under **Token** click **Copy**
+4. Scroll down to the **Privileged Gateway Intents** section
+5. Enable **Message Content Intent** by toggling the switch
 
-> **Warning**:
-> Your bot needs to have **Message Content Intent** enabled for it to be able to read messages!
+<img width="500" align="right" src="https://i.imgur.com/PPm2KKn.png" />
 
-![https://discord.com/developers/applications/](https://i.imgur.com/BdrrxlY.png)
+### Step 4 - Copy the bot token
+
+If you don't have a bot token yet or if you've lost it, follow these steps to reset it:
+
+1. Go to [Discord developer portal](https://discord.com/developers/applications)
+2. Open your Application's settings
+3. Navigate to the **Bot** section on the left
+4. Under **Token** click **Reset Token**
+5. Click **Yes, do it!** and authenticate to confirm
+
+> **Tip**:
+> As the token is only shown once, make sure to store it in a safe place. If you lose the token, you will have to reset it again.
+
+> [!WARNING]
+> Resetting the token will invalidate the old one. Any integrations relying on the old token will cease to function until they are updated.
+
+![https://discord.com/developers/applications/](https://i.imgur.com/soiB8Qc.png)
 
 ---
 
@@ -239,4 +318,4 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 1. Open Discord Settings
 2. Go to the **Advanced** section
 3. Enable **Developer Mode**
-4. Right-click on the desired server or channel and click Copy Server ID or Copy Channel ID
+4. Right-click on the desired server or channel and click **Copy Server ID** or **Copy Channel ID**

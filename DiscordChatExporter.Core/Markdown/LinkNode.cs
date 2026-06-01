@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace DiscordChatExporter.Core.Markdown;
 
@@ -8,5 +8,5 @@ internal record LinkNode(string Url, IReadOnlyList<MarkdownNode> Children)
         IContainerNode
 {
     public LinkNode(string url)
-        : this(url, new[] { new TextNode(url) }) { }
+        : this(url, [new TextNode(url)]) { }
 }

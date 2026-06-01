@@ -1,4 +1,4 @@
-﻿namespace DiscordChatExporter.Core.Exporting.Filtering;
+namespace DiscordChatExporter.Core.Exporting.Filtering;
 
 internal enum MessageContentMatchKind
 {
@@ -8,5 +8,6 @@ internal enum MessageContentMatchKind
     Video,
     Image,
     Sound,
-    Pin
+    Pin,
+    Invite,
 }

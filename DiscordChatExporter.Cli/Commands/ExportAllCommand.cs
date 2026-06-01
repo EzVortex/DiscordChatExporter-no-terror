@@ -1,45 +1,36 @@
+using System;
 using System.Collections.Generic;
-using System.IO.Compression;
-using System.Text.Json;
+using System.Linq;
 using System.Threading.Tasks;
-using CliFx.Attributes;
-using CliFx.Exceptions;
+using CliFx.Binding;
 using CliFx.Infrastructure;
 using DiscordChatExporter.Cli.Commands.Base;
-using DiscordChatExporter.Cli.Commands.Converters;
-using DiscordChatExporter.Cli.Commands.Shared;
-using DiscordChatExporter.Core.Discord;
+using DiscordChatExporter.Cli.Utils.Extensions;
 using DiscordChatExporter.Core.Discord.Data;
+using DiscordChatExporter.Core.Discord.Dump;
 using DiscordChatExporter.Core.Exceptions;
-using JsonExtensions.Reading;
+using Spectre.Console;
 
 namespace DiscordChatExporter.Cli.Commands;
 
 [Command("exportall", Description = "Exports all accessible channels.")]
-public class ExportAllCommand : ExportCommandBase
+public partial class ExportAllCommand : ExportCommandBase
 {
     [CommandOption("include-dm", Description = "Include direct message channels.")]
-    public bool IncludeDirectChannels { get; init; } = true;
+    public bool IncludeDirectChannels { get; set; } = true;
 
-    [CommandOption("include-guilds", Description = "Include guild channels.")]
-    public bool IncludeGuildChannels { get; init; } = true;
+    [CommandOption("include-guilds", Description = "Include server channels.")]
+    public bool IncludeGuildChannels { get; set; } = true;
 
     [CommandOption("include-vc", Description = "Include voice channels.")]
-    public bool IncludeVoiceChannels { get; init; } = true;
-
-    [CommandOption(
-        "include-threads",
-        Description = "Which types of threads should be included.",
-        Converter = typeof(ThreadInclusionBindingConverter)
-    )]
-    public ThreadInclusion ThreadInclusion { get; init; } = ThreadInclusion.None;
+    public bool IncludeVoiceChannels { get; set; } = true;
 
     [CommandOption(
         "data-package",
         Description = "Path to the personal data package (ZIP file) requested from Discord. "
             + "If provided, only channels referenced in the dump will be exported."
     )]
-    public string? DataPackageFilePath { get; init; }
+    public string? DataPackageFilePath { get; set; }
 
     public override async ValueTask ExecuteAsync(IConsole console)
     {
@@ -51,91 +42,114 @@ public class ExportAllCommand : ExportCommandBase
         // Pull from the API
         if (string.IsNullOrWhiteSpace(DataPackageFilePath))
         {
-            await console.Output.WriteLineAsync("Fetching channels...");
-
             await foreach (var guild in Discord.GetUserGuildsAsync(cancellationToken))
             {
                 // Regular channels
-                await foreach (
-                    var channel in Discord.GetGuildChannelsAsync(guild.Id, cancellationToken)
-                )
-                {
-                    if (channel.Kind == ChannelKind.GuildCategory)
-                        continue;
+                await console.Output.WriteLineAsync(
+                    $"Fetching channels for server '{guild.Name}'..."
+                );
 
-                    if (!IncludeVoiceChannels && channel.Kind.IsVoice())
-                        continue;
+                var fetchedChannelsCount = 0;
+                await console
+                    .CreateStatusTicker()
+                    .StartAsync(
+                        "...",
+                        async ctx =>
+                        {
+                            await foreach (
+                                var channel in Discord.GetGuildChannelsAsync(
+                                    guild.Id,
+                                    cancellationToken
+                                )
+                            )
+                            {
+                                if (channel.IsCategory)
+                                    continue;
 
-                    channels.Add(channel);
-                }
+                                if (!IncludeVoiceChannels && channel.IsVoice)
+                                    continue;
 
-                // Threads
-                if (ThreadInclusion != ThreadInclusion.None)
-                {
-                    await foreach (
-                        var thread in Discord.GetGuildThreadsAsync(
-                            guild.Id,
-                            ThreadInclusion == ThreadInclusion.All,
-                            cancellationToken
-                        )
-                    )
-                    {
-                        channels.Add(thread);
-                    }
-                }
+                                channels.Add(channel);
+
+                                ctx.Status(
+                                    Markup.Escape($"Fetched '{channel.GetHierarchicalName()}'.")
+                                );
+
+                                fetchedChannelsCount++;
+                            }
+                        }
+                    );
+
+                await console.Output.WriteLineAsync($"Fetched {fetchedChannelsCount} channel(s).");
             }
         }
         // Pull from the data package
         else
         {
             await console.Output.WriteLineAsync("Extracting channels...");
-            using var archive = ZipFile.OpenRead(DataPackageFilePath);
 
-            var entry = archive.GetEntry("messages/index.json");
-            if (entry is null)
-                throw new CommandException("Could not find channel index inside the data package.");
+            var dump = await DataDump.LoadAsync(DataPackageFilePath, cancellationToken);
+            var inaccessibleChannels = new List<DataDumpChannel>();
 
-            await using var stream = entry.Open();
-            using var document = await JsonDocument.ParseAsync(stream, default, cancellationToken);
+            await console
+                .CreateStatusTicker()
+                .StartAsync(
+                    "...",
+                    async ctx =>
+                    {
+                        foreach (var dumpChannel in dump.Channels)
+                        {
+                            ctx.Status(
+                                Markup.Escape(
+                                    $"Fetching '{dumpChannel.Name}' ({dumpChannel.Id})..."
+                                )
+                            );
 
-            foreach (var property in document.RootElement.EnumerateObjectOrEmpty())
-            {
-                var channelId = Snowflake.Parse(property.Name);
-                var channelName = property.Value.GetString();
+                            try
+                            {
+                                var channel = await Discord.GetChannelAsync(
+                                    dumpChannel.Id,
+                                    cancellationToken
+                                );
 
-                // Null items refer to deleted channels
-                if (channelName is null)
-                    continue;
-
-                await console.Output.WriteLineAsync(
-                    $"Fetching channel '{channelName}' ({channelId})..."
+                                channels.Add(channel);
+                            }
+                            catch (DiscordChatExporterException)
+                            {
+                                inaccessibleChannels.Add(dumpChannel);
+                            }
+                        }
+                    }
                 );
 
-                try
-                {
-                    var channel = await Discord.GetChannelAsync(channelId, cancellationToken);
-                    channels.Add(channel);
-                }
-                catch (DiscordChatExporterException)
+            await console.Output.WriteLineAsync($"Fetched {channels} channel(s).");
+
+            // Print inaccessible channels
+            if (inaccessibleChannels.Any())
+            {
+                await console.Output.WriteLineAsync();
+
+                using (console.WithForegroundColor(ConsoleColor.Red))
                 {
                     await console.Error.WriteLineAsync(
-                        $"Channel '{channelName}' ({channelId}) is inaccessible."
+                        "Failed to access the following channel(s):"
                     );
                 }
+
+                foreach (var dumpChannel in inaccessibleChannels)
+                    await console.Error.WriteLineAsync($"{dumpChannel.Name} ({dumpChannel.Id})");
+
+                await console.Error.WriteLineAsync();
             }
         }
 
         // Filter out unwanted channels
         if (!IncludeDirectChannels)
-            channels.RemoveAll(c => c.Kind.IsDirect());
+            channels.RemoveAll(c => c.IsDirect);
         if (!IncludeGuildChannels)
-            channels.RemoveAll(c => c.Kind.IsGuild());
+            channels.RemoveAll(c => c.IsGuild);
         if (!IncludeVoiceChannels)
-            channels.RemoveAll(c => c.Kind.IsVoice());
-        if (ThreadInclusion == ThreadInclusion.None)
-            channels.RemoveAll(c => c.Kind.IsThread());
-        if (ThreadInclusion != ThreadInclusion.All)
-            channels.RemoveAll(c => c.Kind.IsThread() && c.IsArchived);
+            channels.RemoveAll(c => c.IsVoice);
 
         await ExportAsync(console, channels);
     }
